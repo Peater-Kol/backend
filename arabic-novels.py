@@ -51,76 +51,6 @@ def get_database_connection():
         empty_manga = EmptyCollection()
         empty_chapters = EmptyCollection()
         return empty_db, empty_manga, empty_chapters
-# def scrape_and_store_manga_data(url):
-#     try:
-#         db, manga_collection, chapters_collection = get_database_connection()
-        
-#         # Check if manga already exists in database
-#         existing_manga = manga_collection.find_one({"manga_url": url})
-#         if existing_manga:
-#             print(f"Manga already exists in database with ID: {existing_manga['_id']}")
-#             return existing_manga
-        
-#         # Scrape manga data
-#         response = requests.get(url)
-#         response.raise_for_status()
-        
-#         soup = BeautifulSoup(response.content, 'html.parser')
-        
-#         # Get the manga title
-#         title_element = soup.find('div', class_='post-title')
-#         title = title_element.h1.text.strip() if title_element and title_element.h1 else "Unknown Title"
-        
-#         # Find all chapter list items
-#         chapter_items = soup.find_all('li', class_='wp-manga-chapter')
-        
-#         chapters = []
-#         for item in chapter_items:
-#             chapter_link = item.find('a')
-#             if chapter_link:
-#                 chapter_url = chapter_link['href']
-#                 chapter_title = chapter_link.text.strip()
-                
-#                 # Extract chapter number if available
-#                 chapter_number = None
-#                 number_match = re.search(r'chapter[- ](\d+)', chapter_title.lower())
-#                 if number_match:
-#                     chapter_number = int(number_match.group(1))
-#                 else:
-#                     # Try to find number in the URL
-#                     url_match = re.search(r'chapter-(\d+)', chapter_url)
-#                     if url_match:
-#                         chapter_number = int(url_match.group(1))
-                
-#                 chapters.append({
-#                     "title": chapter_title,
-#                     "url": chapter_url,
-#                     "chapter_number": chapter_number,
-#                     "content_extracted": False
-#                 })
-        
-#         # Create a dictionary to hold all manga data
-#         manga_data = {
-#             "manga_url": url,
-#             "manga_title": title,
-#             "total_chapters": len(chapters),
-#             "last_updated": time.time(),
-#             "chapters": chapters
-#         }
-        
-#         # Insert manga data into MongoDB
-#         result = manga_collection.insert_one(manga_data)
-#         manga_id = result.inserted_id
-        
-#         print(f"Manga '{title}' with {len(chapters)} chapters saved to database with ID: {manga_id}")
-        
-#         # Return manga data with ID
-#         manga_data["_id"] = manga_id
-#         return manga_data
-    
-#     except Exception as e:
-#         print(f"Error scraping manga data: {str(e)}")
-#         return None
 def scrape_and_store_manga_data(url):
     try:
         db, manga_collection, chapters_collection = get_database_connection()
@@ -434,6 +364,373 @@ def extract_all_chapters_for_manga(manga_id, limit=None):
 # Flask API setup
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+# ... existing code ...
+
+@app.route('/', methods=['GET'])
+def api_documentation():
+    """Return HTML documentation for all available API endpoints"""
+    
+    html = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Arabic Novels API Documentation</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            h1 {
+                color: #2c3e50;
+                border-bottom: 2px solid #eee;
+                padding-bottom: 10px;
+            }
+            h2 {
+                color: #3498db;
+                margin-top: 30px;
+            }
+            .endpoint {
+                background-color: #f8f9fa;
+                border-left: 4px solid #3498db;
+                padding: 15px;
+                margin-bottom: 20px;
+                border-radius: 0 4px 4px 0;
+            }
+            .method {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 4px;
+                color: white;
+                font-weight: bold;
+                margin-right: 10px;
+            }
+            .get {
+                background-color: #61affe;
+            }
+            .post {
+                background-color: #49cc90;
+            }
+            .path {
+                font-family: monospace;
+                font-size: 1.1em;
+                font-weight: bold;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+            th, td {
+                text-align: left;
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+            th {
+                background-color: #f2f2f2;
+            }
+            .required {
+                color: #e74c3c;
+                font-weight: bold;
+            }
+            .optional {
+                color: #7f8c8d;
+            }
+            code {
+                background-color: #f8f9fa;
+                padding: 2px 4px;
+                border-radius: 4px;
+                font-family: monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Arabic Novels API Documentation</h1>
+        <p>This API provides endpoints to scrape, store, and retrieve Arabic novels and their chapters.</p>
+        
+        <h2>Manga Endpoints</h2>
+        
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/manga</span>
+            <p>Get a list of all manga with basic information.</p>
+            <p><strong>Response:</strong> JSON array of manga objects with basic details.</p>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/manga/{manga_id}</span>
+            <p>Get detailed information about a specific manga.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Path</td>
+                    <td class="required">Yes</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/manga/{manga_id}/chapters</span>
+            <p>Get all chapters for a specific manga.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Path</td>
+                    <td class="required">Yes</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/manga/scrape</span>
+            <p>Scrape and store information for a new manga.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>url</td>
+                    <td>Body</td>
+                    <td class="required">Yes</td>
+                    <td>URL of the manga to scrape</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/manga/{manga_id}/extract_all</span>
+            <p>Extract content for all chapters of a manga.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Path</td>
+                    <td class="required">Yes</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+                <tr>
+                    <td>limit</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>Maximum number of chapters to extract</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/manga/chapter_ids</span>
+            <p>Get IDs for multiple chapters of a manga.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Body</td>
+                    <td class="required">Yes</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+                <tr>
+                    <td>min_chapter</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>Minimum chapter number to include</td>
+                </tr>
+                <tr>
+                    <td>max_chapter</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>Maximum chapter number to include</td>
+                </tr>
+            </table>
+        </div>
+        
+        <h2>Chapter Endpoints</h2>
+        
+        <div class="endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/chapter/{chapter_id}</span>
+            <p>Get content for a specific chapter by ID.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>chapter_id</td>
+                    <td>Path</td>
+                    <td class="required">Yes</td>
+                    <td>MongoDB ObjectId of the chapter</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/chapter/lookup</span>
+            <p>Find chapter by URL, manga ID, or chapter number.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>url</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>URL of the chapter</td>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+                <tr>
+                    <td>chapter_number</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>Chapter number</td>
+                </tr>
+            </table>
+            <p><small>At least one parameter is required</small></p>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/chapter/get_id</span>
+            <p>Get only the ID for a chapter (lightweight version of lookup).</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>url</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>URL of the chapter</td>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+                <tr>
+                    <td>chapter_number</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>Chapter number</td>
+                </tr>
+            </table>
+            <p><small>At least one parameter is required</small></p>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/chapter/url/v1</span>
+            <p>Get chapter by URL.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>url</td>
+                    <td>Body</td>
+                    <td class="required">Yes</td>
+                    <td>URL of the chapter</td>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Body</td>
+                    <td class="optional">No</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/chapter/extract</span>
+            <p>Extract and store content for a specific chapter.</p>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>manga_id</td>
+                    <td>Body</td>
+                    <td class="required">Yes</td>
+                    <td>MongoDB ObjectId of the manga</td>
+                </tr>
+                <tr>
+                    <td>chapter_url</td>
+                    <td>Body</td>
+                    <td class="required">Yes</td>
+                    <td>URL of the chapter to extract</td>
+                </tr>
+            </table>
+        </div>
+        
+        <hr>
+        <p style="text-align: center; margin-top: 30px; color: #7f8c8d;">
+            Arabic Novels API | Created with Python, Flask and MongoDB
+        </p>
+    </body>
+    </html>
+    """
+    
+    return html
+
+# ... existing code ...
 
 @app.route('/api/manga', methods=['GET'])
 def get_all_manga():
