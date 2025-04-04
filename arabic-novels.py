@@ -17,8 +17,7 @@ def get_database_connection():
     
     try:
         # MongoDB Atlas connection string
-        # connection_string = "mongodb+srv://titou:titou1234@cluster0.1fx2g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-        connection_string = "mongodb://localhost:27017"
+        connection_string = "mongodb+srv://titou:titou1234@cluster0.1fx2g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
         # Connect to MongoDB Atlas with SSL certificate verification disabled
         # This is a workaround for certificate verification issues
         client = pymongo.MongoClient(connection_string)
